@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Золотое Сердце — Визуальная Новелла</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    #novel-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #1f233a 0%, #3e3252 50%, #1a162b 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    /* Фоновые эффекты аниме */
+    .bg-light {
+      position: absolute;
+      top: -20%;
+      left: 10%;
+      width: 80%;
+      height: 80%;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Спрайт персонажа по центру */
+    #sprite-box {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 72vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+
+    #sprite-img {
+      max-height: 100%;
+      max-width: 90vw;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.6));
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    /* Диалоговое окно снизу */
+    #dialogue-window {
+      position: relative;
+      z-index: 20;
+      margin: 0 16px 20px 16px;
+      background: rgba(18, 18, 28, 0.88);
+      border: 2px solid rgba(255, 215, 0, 0.45);
+      border-radius: 14px;
+      padding: 16px 18px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+      min-height: 120px;
+      cursor: pointer;
+    }
+
+    #speaker-tag {
+      display: inline-block;
+      background: linear-gradient(90deg, #d4af37, #f39c12);
+      color: #1a1100;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+    }
+
+    #speaker-tag.timofey {
+      background: linear-gradient(90deg, #e67e22, #f1c40f);
+      color: #2c1600;
+    }
+
+    #speaker-tag.kolya {
+      background: linear-gradient(90deg, #3498db, #2ecc71);
+      color: #042416;
+    }
+
+    #dialogue-text {
+      color: #f1f2f6;
+      font-size: 16px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+
+    .tap-hint {
+      position: absolute;
+      right: 14px;
+      bottom: 8px;
+      color: rgba(255, 215, 0, 0.7);
+      font-size: 12px;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-3px); }
+    }
+
+    /* Меню выборов для Тимофея */
+    #choices-container {
+      position: absolute;
+      bottom: 155px;
+      left: 16px;
+      right: 16px;
+      z-index: 30;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .choice-btn {
+      background: rgba(25, 24, 40, 0.95);
+      border: 1.5px solid #f39c12;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 18px;
+      border-radius: 12px;
+      text-align: left;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+    }
+
+    .choice-btn:active {
+      background: #f39c12;
+      color: #1a1a1a;
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="novel-container">
+    <div class="bg-light"></div>
+
+    <!-- Область спрайта -->
+    <div id="sprite-box">
+      <img id="sprite-img" src="" alt="">
+    </div>
+
+    <!-- Выборы реплик -->
+    <div id="choices-container"></div>
+
+    <!-- Текстовое окно -->
+    <div id="dialogue-window">
+      <div id="speaker-tag">Тимофей</div>
+      <div id="dialogue-text">...</div>
+      <div class="tap-hint">Тапни, чтобы продолжить ▼</div>
+    </div>
+  </div>
+
+  <script>
+    // Точные имена твоих файлов из папки
+    const SPRITES = {
+      timofey: 'timofey.jpg.jpg',
+      kolya_smile: 'kolya.jpg.jpg',
+      kolya_shock: 'kolya_shock.jpg.jpg',
+      kolya_shy: 'kolya_shy.jpg.jpg'
+    };
+
+    // Сценарий встречи
+    const story = {
+      start: [
+        {
+          speaker: "Тимофей",
+          tagClass: "timofey",
+          sprite: SPRITES.timofey,
+          text: "Так, план простой: найти кого-то надёжного, уютного и чтобы в кошельке всегда водилась чистая голда. О, а вот и он."
+        },
+        {
+          speaker: "Коля",
+          tagClass: "kolya",
+          sprite: SPRITES.kolya_smile,
+          text: "Привет! Ты тоже на эту пару спешишь? Я тебя раньше здесь не видел..."
+        },
+        {
+          speaker: "Тимофей",
+          tagClass: "timofey",
+          sprite: SPRITES.timofey,
+          text: "(Хм, оранжевый галстук, добрый взгляд... Выглядит как идеальная добыча. Как бы к нему подкатить?)",
+          choices: [
+            { text: "«Привет, красавчик. Твоя улыбка дороже, чем любая голда в банке.»", next: "choice_flirt" },
+            { text: "«Слушай, угостишь кофе в буфете? Я сегодня на нуле, но с меня компания.»", next: "choice_bold" }
+          ]
+        }
+      ],
+
+      choice_flirt: [
+        {
+          speaker: "Коля",
+          tagClass: "kolya",
+          sprite: SPRITES.kolya_shock,
+          text: "Погоди... это реально?! Ты сейчас правда мне это сказал?!"
+        },
+        {
+          speaker: "Коля",
+          tagClass: "kolya",
+          sprite: SPRITES.kolya_shy,
+          text: "У меня аж щёки загорелись... Не ожидал такого с порога. Но... мне приятно."
+        },
+        {
+          speaker: "Тимофей",
+          tagClass: "timofey",
+          sprite: SPRITES.timofey,
+          text: "А то. У меня намётанный глаз на всё драгоценное. Пойдём прогуляемся после пар?"
+        },
+        {
+          speaker: "Коля",
+          tagClass: "kolya",
+          sprite: SPRITES.kolya_shy,
+          text: "Погоди... это реально свидание? Давай! Я угощаю десертом."
+        },
+        {
+          speaker: "Тимофей",
+          tagClass: "timofey",
+          sprite: SPRITES.timofey,
+          text: "(Идеально. Голда уже в кармане, да и Коля оказался чертовски милым...) [КОНЕЦ 1 ГЛАВЫ: УСПЕХ]"
+        }
+      ],
+
+      choice_bold: [
+        {
+          speaker: "Коля",
+          tagClass: "kolya",
+          sprite: SPRITES.kolya_shock,
+          text: "Погоди... это реально? Ты прямо так в лоб просишь кофе у незнакомца?!"
+        },
+        {
+          speaker: "Коля",
+          tagClass: "kolya",
+          sprite: SPRITES.kolya_smile,
+          text: "Ха-ха, а ты забавный и смелый. Ладно, пошли, возьму тебе капучино."
+        },
+        {
+          speaker: "Тимофей",
+          tagClass: "timofey",
+          sprite: SPRITES.timofey,
+          text: "Вот это дело, чистая голда! Ты просто спаситель."
+        },
+        {
+          speaker: "Коля",
+          tagClass: "kolya",
+          sprite: SPRITES.kolya_shy,
+          text: "Только при одном условии — на следующем перерыве ты мне расскажешь, почему ты всё время повторяешь «голда»!"
+        },
+        {
+          speaker: "Тимофей",
+          tagClass: "timofey",
+          sprite: SPRITES.timofey,
+          text: "(Контакт налажен. Похоже, это начало отличной истории...) [КОНЕЦ 1 ГЛАВЫ: ДРУЖЕСКИЙ ПОДХОД]"
+        }
+      ]
+    };
+
+    let currentBranch = "start";
+    let stepIndex = 0;
+
+    const elSpeaker = document.getElementById("speaker-tag");
+    const elText = document.getElementById("dialogue-text");
+    const elSprite = document.getElementById("sprite-img");
+    const elChoices = document.getElementById("choices-container");
+    const elDialogWindow = document.getElementById("dialogue-window");
+
+    function renderStep() {
+      const line = story[currentBranch][stepIndex];
+      if (!line) return;
+
+      elSpeaker.textContent = line.speaker;
+      elSpeaker.className = line.tagClass || "";
+      elText.textContent = line.text;
+
+      // Смена картинки
+      if (line.sprite) {
+        elSprite.src = line.sprite;
+        elSprite.style.display = "block";
+      } else {
+        elSprite.style.display = "none";
+      }
+
+      // Если есть варианты ответа
+      if (line.choices) {
+        elChoices.innerHTML = "";
+        line.choices.forEach(c => {
+          const btn = document.createElement("button");
+          btn.className = "choice-btn";
+          btn.textContent = c.text;
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            currentBranch = c.next;
+            stepIndex = 0;
+            elChoices.style.display = "none";
+            renderStep();
+          };
+          elChoices.appendChild(btn);
+        });
+        elChoices.style.display = "flex";
+      } else {
+        elChoices.style.display = "none";
+      }
+    }
+
+    // Листание по нажатию на диалоговое окно
+    elDialogWindow.addEventListener("click", () => {
+      const line = story[currentBranch][stepIndex];
+      if (line && line.choices) return; // Ждём выбор
+
+      if (stepIndex + 1 < story[currentBranch].length) {
+        stepIndex++;
+        renderStep();
+      }
+    });
+
+    renderStep();
+  </script>
+</body>
+</html>
